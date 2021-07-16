@@ -1,5 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
+from markdownify import markdownify
 
 from utils import Config, Notifications
 from models import DB, Message
@@ -30,7 +31,8 @@ class Ekartoteka:
         for title in titles:
             message_id = title.get('id')[2:]
             message = soup.find(id=f"te{message_id}")
-            m = Message(message_id, title.text, message.text)
+            markdown_message = markdownify(f'{message!r}')
+            m = Message(message_id, title.text, markdown_message)
             m.add()
 
     def send_nofifications(self):
