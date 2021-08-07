@@ -10,6 +10,11 @@ from email.utils import formatdate
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
+from markdownify import markdownify
+
+from bs4 import BeautifulSoup
+from facebook import GraphAPI
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -85,6 +90,7 @@ class SlackNotification(Notifications):
         self.webhook_url = kwargs['webhook_url']
 
     def send_message(self, title: str, message: str):
+        markdown_message = markdownify(f'{message!r}')
         data = {
             "blocks":
             [
@@ -92,7 +98,7 @@ class SlackNotification(Notifications):
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"*{title}*\n{message}"
+                        "text": f"*{title}*\n{markdown_message}"
                     }
                 },
                 {
@@ -102,3 +108,17 @@ class SlackNotification(Notifications):
         }
         logger.debug(data)
         requests.post(self.webhook_url, json=data)
+
+@Notifications.register_client('fb_group')
+class FacebookGroupNotification(Notifications):
+
+    def __init__(self, **kwargs):
+        self.group_id = kwargs['group_id']
+        access_token = kwargs['access_token']
+        self.graph = GraphAPI(access_token=access_token)
+
+    def send_message(self, title: str, message: str):
+        ic(message)
+        message = markdownify(f"{message}")
+        ic(message)
+        self.graph.put_object(self.group_id, 'feed', message=message)

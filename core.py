@@ -1,6 +1,5 @@
 import requests
 from bs4 import BeautifulSoup
-from markdownify import markdownify
 
 from utils import Config, Notifications
 from models import DB, Message
@@ -20,7 +19,20 @@ class Ekartoteka:
             "ha": self.config.get('ekartoteka', 'password')
         }
         url = self.config.get('ekartoteka', 'url')
-        self.session.post(url, data=payload)
+        self.session.post(f"{url}/index.php", data=payload)
+
+    def rewrite_links(self, message):
+        attachements = message.find(id='zalaczniki')
+        links = []
+        if attachements is not None:
+            for a in attachements.findAll('a'):
+                href = f"{self.config.get('ekartoteka', 'url')}/{a['href']}"
+                text = a.contents[0].replace('\xa0\xa0|\xa0\xa0', '')
+                links.append(f'<a href="{href}">{text}</a>')
+            message.find(id="zalaczniki").decompose()
+            joined_links = " ".join(links)
+            return f"{message!r}{joined_links}"
+        return f"{message!r}"
 
     def get_messages(self):
         messages_endpoint = self.config.get('ekartoteka', 'messages_endpoint')
@@ -31,8 +43,8 @@ class Ekartoteka:
         for title in titles:
             message_id = title.get('id')[2:]
             message = soup.find(id=f"te{message_id}")
-            markdown_message = markdownify(f'{message!r}')
-            m = Message(message_id, title.text, markdown_message)
+            rewritten_message = self.rewrite_links(message)
+            m = Message(message_id, title.text, rewritten_message)
             m.add()
 
     def send_nofifications(self):

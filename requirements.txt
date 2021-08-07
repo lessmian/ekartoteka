@@ -4,3 +4,4 @@ icecream
 pony
 pyyaml
 markdownify
+facebook-sdk
