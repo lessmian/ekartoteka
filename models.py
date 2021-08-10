@@ -39,7 +39,7 @@ class Message:
     @db_session
     def mark_sent(self) -> None:
         m = MessagesModel.get(id=self.id)
-        #m.sent = 1
+        m.sent = 1
 
     @db_session
     def send_notify(self, notifier: Notifications) -> None:
